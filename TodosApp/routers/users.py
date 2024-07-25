@@ -4,8 +4,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, Path
 from starlette import status
-from models import Users
-from database import SessionLocal
+from ..models import Users
+from ..database import SessionLocal
 from .auth import get_current_user
 from passlib.context import CryptContext
 
@@ -31,6 +31,7 @@ class PasswordRequest(BaseModel):
     password: str
     new_password: str = Field(min_length=6)
 
+
 @router.get("/", status_code=status.HTTP_200_OK)
 async def get_user(user: user_dependency, db: db_dependency):
     if user is None:
@@ -49,5 +50,15 @@ async def change_passport(user: user_dependency, db: db_dependency,
         raise HTTPException(status_code=401, detail='Error on password change')
 
     user_model.hashed_password = bcrypt_context.hash(user_verification.new_password)
+    db.add(user_model)
+    db.commit()
+
+@router.put("/phonenumber/{phone_number}", status_code=status.HTTP_204_NO_CONTENT)
+async def change_phone_number(user: user_dependency, db: db_dependency,
+                      phone_number: str):
+    user_model = db.query(Users).filter(Users.id == user.get('id')).first()
+
+    user_model.phone_number = phone_number
+
     db.add(user_model)
     db.commit()
